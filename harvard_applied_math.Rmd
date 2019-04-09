@@ -17,15 +17,21 @@ library(janitor)
 library(RColorBrewer)
 library(ggthemes)
 
-# There have been a lot of rumor that the number of Applied Mathematics concentrators has risen dramatically over the past couple years.
-# So, I tried to create a graphic to see how the number of Applied Mathematics concentrators has changed over time in Harvard.
-# I initially planned to do this for all 18 years we have the data available for, but then, I noticed that the data untill 2016 is stored in PDF 
-# files which makes it hard for me to deal with. Therefore, I decided to go with the data I have available in xslx format, from 2016 to 2019.
+# There have been a lot of rumor that the number of Applied Mathematics
+# concentrators has risen dramatically over the past couple years. So, I tried
+# to create a graphic to see how the number of Applied Mathematics concentrators
+# has changed over time in Harvard. I initially planned to do this for all 18
+# years we have the data available for, but then, I noticed that the data untill
+# 2016 is stored in PDF files which makes it hard for me to deal with.
+# Therefore, I decided to go with the data I have available in xslx format, from
+# 2016 to 2019.
 
-# Instead of copy pasting my download - delete code many times, I instead wrote a loop that automate that process. I could have modified that into
-# a function but decided to not spend too much time on it.
+# Instead of copy pasting my download - delete code many times, I instead wrote
+# a loop that automate that process. I could have modified that into a function
+# but decided to not spend too much time on it.
 
-# So, basically I define a list that has all the websites that I have to later pass into my loop
+# So, basically I define a list that has all the websites that I have to later
+# pass into my loop
 
 links <- list("https://registrar.fas.harvard.edu/files/fas-registrar/files/class_enrollment_summary_by_term_3.22.19.xlsx",
                        "https://registrar.fas.harvard.edu/files/fas-registrar/files/class_enrollment_summary_by_term_03.06.18.xlsx",
@@ -38,7 +44,8 @@ links <- list("https://registrar.fas.harvard.edu/files/fas-registrar/files/class
 
 years <- c(2019, 2018, 2017, 2018, 2017, 2016)
 
-# This variable is very useful for if - else statements and accessing the `years` vector
+# This variable is very useful for if - else statements and accessing the
+# `years` vector
 
 a = 1
 
@@ -46,18 +53,22 @@ a = 1
 
 for (link in links){
   
-  # We have to download the file because unlike read_csv, read_excel does not support online reading feature
+  # We have to download the file because unlike read_csv, read_excel does not
+  # support online reading feature
   
-  # Also, I just download the file once and rewrite it on every iteration of my loop
+  # Also, I just download the file once and rewrite it on every iteration of my
+  # loop
   
-  # and without mode = "wb" this function does not work because my device is windows
+  # and without mode = "wb" this function does not work because my device is
+  # windows
   
   download.file(link, 
                 "data.xlsx",
                 mode = "wb")
   
-  # I put this condition because, we need only the first iteration of the loop to have our columns. 
-  # We don't need to include the columns of the dataset in the subsequent datasets, as we will perform row binding.
+  # I put this condition because, we need only the first iteration of the loop
+  # to have our columns. We don't need to include the columns of the dataset in
+  # the subsequent datasets, as we will perform row binding.
   
   if (a == 1){
     
@@ -67,9 +78,11 @@ for (link in links){
       
       clean_names() %>% 
       
-      # This puts the year of the column according to the years vector I have defined above
+      # This puts the year of the column according to the years vector I have
+      # defined above
       
-      # Note that I have defined the order of the years vector according to the order of links I have
+      # Note that I have defined the order of the years vector according to the
+      # order of links I have
       
       mutate(year = years[[a]], term = "Spring")
   }
@@ -82,10 +95,12 @@ for (link in links){
     clean_names() %>%
       mutate(year = years[[a]])
     
-    # The the 4th and onwards elements of the website lists contain the fall courses
+    # The the 4th and onwards elements of the website lists contain the fall
+    # courses
     
-    # I thought it would be very inefficient to write this loop twice and then bind it, so
-    # I came up with this idea of adding an additional feature to data and order the websites list accordingly
+    # I thought it would be very inefficient to write this loop twice and then
+    # bind it, so I came up with this idea of adding an additional feature to
+    # data and order the websites list accordingly
     
     if (a < 4){
       temp <- mutate(temp, term = "Spring")
@@ -95,8 +110,10 @@ for (link in links){
       temp <- mutate(temp, term = "Fall")
     }
     
-    # I honestly got lucky here in that all the datasets have the same variables in the same order, so I just went ahead and 
-    # assigned the column names of the first data we had into the subsequent ones to make the row-binding possible
+    # I honestly got lucky here in that all the datasets have the same variables
+    # in the same order, so I just went ahead and assigned the column names of
+    # the first data we had into the subsequent ones to make the row-binding
+    # possible
     
     colnames(temp) <- colnames(enrollments)
     
@@ -122,6 +139,7 @@ enrollments %>%
   # We only need to pick the features we care about
   
   select(course_department, u_grad, year, term) %>% 
+  
   group_by(year, term) %>% 
   
   # We only need the Applied Math classes
@@ -136,22 +154,27 @@ enrollments %>%
   
   ungroup() %>% 
   
-  # Now, the data for 2016 is very different from the data from 2017 onwards,
-  # so I manually (and correctly) calculated the total enrollment and added to the data.
-  # I think doing so is much more efficient than rewriting the above loop I have
-  # to get a couple data points in.
+  # Now, the data for 2016 is very different from the data from 2017 onwards, so
+  # I manually (and correctly) calculated the total enrollment and added to the
+  # data. I think doing so is much more efficient than rewriting the above loop
+  # I have to get a couple data points in.
   
   add_row(year = 2016, term = "Spring", total = 429) %>%
   
   # FInally, we plot the graph
   
-  ggplot(aes(year, total)) +
+  ggplot(aes(year, total, color = total)) +
   
   # I think line graph is better for seeing the change over time
   
   geom_line(size = 2) +
   
-  # We should compare Fall classes with Fall classes only (same for Spring classes)
+  # I think gradient work good for the type of graph I have
+  
+  scale_color_gradient(low = "#9ec9ff", high = "#005ed3") +
+  
+  # We should compare Fall classes with Fall classes only (same for Spring
+  # classes)
   
   facet_grid(term ~ .) +
   
@@ -162,14 +185,15 @@ enrollments %>%
        title = "Total Enrollments in Harvard's Undergradutate Applied Mathematics Classes by \nSemester and Year",
        subtitle = "Fall 2016 - Spring 2019",
        caption = "Source: Harvard Registrar's Office") +
-  scale_fill_gradient(low="blue", high="red") +
   
   # I like the light theme a lot
   
-  theme_light()
+  theme_light() +
   
-
-
+  # This is to make the legen title prettier
+  
+  guides(color = guide_legend(title="Total Enrollment"))
+  
 
 ```
 
